@@ -66,3 +66,18 @@ button:focus-visible { box-shadow: 0 0 0 3px rgba(37,99,235,0.35); outline: none
 
 .card { @apply rounded-2xl bg-white border border-gray-100 shadow-md p-4; }
 .card:hover { transform: scale(1.02); box-shadow: 0 12px 28px rgba(0,0,0,0.08); }
+/* Subtle hover transitions */
+* {
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Cards pop a little on hover */
+.card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+}
+
+/* Animate tab switches smoothly */
+html {
+  scroll-behavior: smooth;
+}
