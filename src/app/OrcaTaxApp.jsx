@@ -144,11 +144,12 @@ export default function OrcaTaxApp(){
   const [showProfile, setShowProfile] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("orcatax-theme") || "light");
 
-  // theme
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("orcatax-theme", theme);
-  }, [theme]);
+  // Force Light mode globally
+useEffect(() => {
+  document.documentElement.classList.remove('dark');
+  localStorage.setItem('orcatax-theme', 'light');
+}, []);
+
 
   // toast CSS once
   useEffect(() => { injectToastStyles(); }, []);
