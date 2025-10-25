@@ -18,14 +18,7 @@ import "react-toastify/dist/ReactToastify.css";
    React + Tailwind + Framer Motion + Recharts + Toastify
    ───────────────────────────────────────────────────────────── */
 
-// Toast theme: light gray transparent with blur
-const GlassToast = cssTransition({
-  enter: "ortoast-enter",
-  exit: "ortoast-exit",
-  duration: [220, 180],
-});
-
-/* Custom Toast CSS (glass look) */
+/* Glassy Toast CSS (bez custom cssTransition) */
 const injectToastStyles = () => {
   if (document.getElementById("orcatax-toast-styles")) return;
   const style = document.createElement("style");
@@ -40,15 +33,9 @@ const injectToastStyles = () => {
     box-shadow: 0 8px 28px rgba(2,6,23,0.12);
     border-radius: 16px !important;
   }
-  /* ⬇︎ spriječi hover-pause totalno */
   .Toastify__toast-container { pointer-events: none; }
-  .Toastify__toast { pointer-events: all; } /* i dalje dozvoli klik na close ako ga kasnije uključiš */
-  .ortoast-enter { transform: translateY(8px); opacity: 0; }
-  .ortoast-enter-active { transform: translateY(0); opacity: 1; transition: all .22s ease-out; }
-  .ortoast-exit { transform: translateY(0); opacity: 1; }
-  .ortoast-exit-active { transform: translateY(8px); opacity: 0; transition: all .18s ease-in; }
-`;
-
+  .Toastify__toast { pointer-events: all; }
+  `;
   document.head.appendChild(style);
 };
 
@@ -198,12 +185,12 @@ export default function OrcaTaxApp(){
       "Evaluating deductions & credits…",
       "Projecting refund/balance range…",
     ]);
-    toast("🤖 Running TaxAgent…", { transition: GlassToast });
+    toast("🤖 Running TaxAgent…");
     setTimeout(()=>{
       setAgentLog(log=>[...log,"Recommended actions prepared."]);
       setAgentBusy(false);
-      toast.success("✅ AI analysis complete", { transition: GlassToast });
-    }, 1100);
+      toast.success("✅ AI analysis complete");
+    }, 800);
   }
 
   return (
@@ -353,7 +340,7 @@ export default function OrcaTaxApp(){
                     onStatusChange={(newStatus)=>{
                       setAllClients(prev => prev.map(p => p.id===selected.id ? {...p, status:newStatus} : p));
                       setSelected(s => s ? {...s, status:newStatus} : s);
-                      toast.info(`🔄 Status → ${newStatus}`, { transition: GlassToast });
+                      toast.info(`🔄 Status → ${newStatus}`);
                     }}
                   />
                 )}
@@ -396,7 +383,7 @@ export default function OrcaTaxApp(){
             <AddClientModal
               onClose={()=>setShowAdd(false)}
               setAllClients={setAllClients}
-              onCreated={(c)=> { setSelected(c); toast.success("✅ New client added", { transition: GlassToast }); }}
+              onCreated={(c)=> { setSelected(c); toast.success("✅ New client added"); }}
             />
           </Modal>
         )}
@@ -404,18 +391,18 @@ export default function OrcaTaxApp(){
 
       {/* Toasts */}
       <ToastContainer
-  position="bottom-right"
-  autoClose={2200}
-  pauseOnHover={false}
-  pauseOnFocusLoss={false}
-  closeOnClick
-  draggable={false}
-  newestOnTop
-  hideProgressBar
-  closeButton={false}
-  transition={GlassToast}
-/>
-
+        position="bottom-right"
+        autoClose={1800}
+        pauseOnHover={false}
+        pauseOnFocusLoss={false}
+        closeOnClick
+        draggable={false}
+        newestOnTop
+        hideProgressBar
+        closeButton={false}
+        theme="light"
+        transition={Slide}
+      />
     </div>
   );
 }
@@ -441,7 +428,7 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
     addTimeline(`📤 ${last.source} uploaded ${last.name}`);
     setTimeout(()=>{
       addTimeline(`🤖 AI detected: ${inferred} — mapped to Income section`);
-      toast.info(`🤖 Detected: ${inferred}`, { transition: GlassToast });
+      toast.info(`🤖 Detected: ${inferred}`);
     }, 450);
   }, [docs]);
 
@@ -480,7 +467,7 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
       </div>
 
       {/* AI insights */}
-      <div className="rounded-xl border p-3">
+      <div className="rounded-xl border p-3 bg-white">
         <div className="flex items-center gap-2 font-semibold mb-2"><Sparkles className="w-4 h-4"/> AI Insights (demo)</div>
         <ul className="list-disc ml-6 text-sm space-y-1">
           {ai.bullets.map((b,i)=>(<li key={i}>{b}</li>))}
@@ -501,10 +488,10 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
         <div className="rounded-xl border p-3 bg-white">
           <div className="font-semibold mb-2">Actions</div>
           <div className="flex flex-wrap gap-2">
-            <motion.button whileTap={{scale:.98}} onClick={()=>{ setShowWizard(true); addTimeline("🧾 Return Builder started"); toast("🧾 Return Builder started", { transition: GlassToast }); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Start Return</motion.button>
-            <motion.button whileTap={{scale:.98}} onClick={()=>{ setShowSign(true); addTimeline("✍️ eSign engagement initiated"); toast("✍️ eSign initiated", { transition: GlassToast }); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50 flex items-center gap-1"><FileSignature className="w-4 h-4"/> eSign Engagement</motion.button>
-            <motion.button whileTap={{scale:.98}} onClick={()=>{ addTimeline("🔗 Secure upload link sent to client"); toast.info("🔗 Secure upload link sent", { transition: GlassToast }); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Secure Upload Link</motion.button>
-            <motion.button whileTap={{scale:.98}} onClick={()=>{ addTimeline("📚 KY/IRS form set generated (mock)"); toast("📚 Form set generated (mock)", { transition: GlassToast }); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Generate KY/IRS Form Set (mock)</motion.button>
+            <motion.button whileTap={{scale:.98}} onClick={()=>{ setShowWizard(true); addTimeline("🧾 Return Builder started"); toast("🧾 Return Builder started"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Start Return</motion.button>
+            <motion.button whileTap={{scale:.98}} onClick={()=>{ setShowSign(true); addTimeline("✍️ eSign engagement initiated"); toast("✍️ eSign initiated"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50 flex items-center gap-1"><FileSignature className="w-4 h-4"/> eSign Engagement</motion.button>
+            <motion.button whileTap={{scale:.98}} onClick={()=>{ addTimeline("🔗 Secure upload link sent to client"); toast.info("🔗 Secure upload link sent"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Secure Upload Link</motion.button>
+            <motion.button whileTap={{scale:.98}} onClick={()=>{ addTimeline("📚 KY/IRS form set generated (mock)"); toast("📚 Form set generated (mock)"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Generate KY/IRS Form Set (mock)</motion.button>
           </div>
         </div>
 
@@ -529,7 +516,7 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
             onClick={()=>{
               setDocs(d => [...d, {name:`W2_${c.name.replace(/\s/g,'')}_2024.pdf`, source:"Client"}]);
               if (c.status === "Waiting Docs") onStatusChange("In Progress");
-              toast.info("📄 Client uploaded W-2 (simulated)", { transition: GlassToast });
+              toast.info("📄 Client uploaded W-2 (simulated)");
             }}
             className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50"
           >
@@ -542,7 +529,7 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
               const file = e.target.files?.[0];
               if(file) {
                 setDocs(d => [...d, {name:file.name, source:"Advisor"}]);
-                toast("📎 Uploaded (advisor)", { transition: GlassToast });
+                toast("📎 Uploaded (advisor)");
               }
               e.target.value = "";
             }}/>
@@ -551,9 +538,9 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
           <motion.button
             whileTap={{scale:.98}}
             onClick={()=>{
-              if(docs.length===0){ toast("No docs to analyze", { transition: GlassToast }); return; }
-              toast("🤖 TaxAgent validating…", { transition: GlassToast });
-              setTimeout(()=> toast.success("✅ Validation complete — no anomalies", { transition: GlassToast }), 900);
+              if(docs.length===0){ toast("No docs to analyze"); return; }
+              toast("🤖 TaxAgent validating…");
+              setTimeout(()=> toast.success("✅ Validation complete — no anomalies"), 700);
             }}
             className="px-3 py-2 rounded-lg border bg-black text-white hover:opacity-90"
           >
@@ -592,14 +579,14 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
               onClose={()=>setShowSign(false)}
               client={c}
               onStep={(label)=> addTimeline(label)}
-              onDone={()=> { onStatusChange("Review"); toast.success("✍️ eSign completed", { transition: GlassToast }); }}
+              onDone={()=> { onStatusChange("Review"); toast.success("✍️ eSign completed"); }}
             />
           </Modal>
         )}
         {showWizard && (
           <Modal onClose={()=>setShowWizard(false)} title="Return Builder (demo)">
             <ReturnWizard
-              onClose={()=>{ setShowWizard(false); addTimeline("🧾 Return Builder completed"); onStatusChange("Review"); toast.success("🧾 Return complete (demo)", { transition: GlassToast }); }}
+              onClose={()=>{ setShowWizard(false); addTimeline("🧾 Return Builder completed"); onStatusChange("Review"); toast.success("🧾 Return complete (demo)"); }}
               client={c}
               onStep={(label)=> addTimeline(label)}
             />
