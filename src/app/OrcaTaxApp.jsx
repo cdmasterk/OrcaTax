@@ -13,12 +13,14 @@ import {
 import { ToastContainer, toast, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+import ClientProfile from "../components/ClientProfile.jsx";
+
 /* ─────────────────────────────────────────────────────────────
    ORCATAX CLOUD — CLICKABLE DEMO (no backend)
    React + Tailwind + Framer Motion + Recharts + Toastify
    ───────────────────────────────────────────────────────────── */
 
-/* Glassy Toast CSS (bez custom cssTransition) */
+/* Glassy Toast CSS (ubrizgamo jednom) */
 const injectToastStyles = () => {
   if (document.getElementById("orcatax-toast-styles")) return;
   const style = document.createElement("style");
@@ -139,8 +141,9 @@ export default function OrcaTaxApp(){
   const [agentBusy, setAgentBusy] = useState(false);
   const [agentLog, setAgentLog] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
-  // inject toast CSS once (inside component)
+  // inject toast CSS once
   useEffect(() => { injectToastStyles(); }, []);
 
   const filtered = useMemo(()=> {
@@ -191,6 +194,11 @@ export default function OrcaTaxApp(){
       setAgentBusy(false);
       toast.success("✅ AI analysis complete");
     }, 800);
+  }
+
+  function openClientProfile(c){
+    setSelected(c);
+    setShowProfile(true);
   }
 
   return (
@@ -304,7 +312,7 @@ export default function OrcaTaxApp(){
                   </thead>
                   <tbody>
                     {filtered.slice(0, 25).map(c => (
-                      <tr key={c.id} className="border-t hover:bg-slate-50 cursor-pointer" onClick={()=>{ setSelected(c); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                      <tr key={c.id} className="border-t hover:bg-slate-50 cursor-pointer" onClick={()=> openClientProfile(c)}>
                         <td className="p-3">
                           <div className="font-medium">{c.name} <span className="text-xs text-slate-400">({c.id})</span></div>
                           <div className="text-xs text-slate-500">{c.city}, {c.state} • {c.email}</div>
@@ -389,6 +397,13 @@ export default function OrcaTaxApp(){
         )}
       </AnimatePresence>
 
+      {/* PROFILE FULL-SCREEN */}
+      <AnimatePresence>
+        {showProfile && selected && (
+          <ClientProfile client={selected} onClose={()=>setShowProfile(false)} />
+        )}
+      </AnimatePresence>
+
       {/* Toasts */}
       <ToastContainer
         position="bottom-right"
@@ -424,11 +439,9 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
   useEffect(()=>{
     if(docs.length===0) return;
     const last = docs[docs.length-1];
-    const inferred = inferDocType(last.name);
     addTimeline(`📤 ${last.source} uploaded ${last.name}`);
     setTimeout(()=>{
-      addTimeline(`🤖 AI detected: ${inferred} — mapped to Income section`);
-      toast.info(`🤖 Detected: ${inferred}`);
+      toast.info(`🤖 Detected: ${inferDocType(last.name)}`);
     }, 450);
   }, [docs]);
 
@@ -467,7 +480,7 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
       </div>
 
       {/* AI insights */}
-      <div className="rounded-xl border p-3 bg-white">
+      <div className="rounded-xl border p-3">
         <div className="flex items-center gap-2 font-semibold mb-2"><Sparkles className="w-4 h-4"/> AI Insights (demo)</div>
         <ul className="list-disc ml-6 text-sm space-y-1">
           {ai.bullets.map((b,i)=>(<li key={i}>{b}</li>))}
@@ -488,10 +501,10 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
         <div className="rounded-xl border p-3 bg-white">
           <div className="font-semibold mb-2">Actions</div>
           <div className="flex flex-wrap gap-2">
-            <motion.button whileTap={{scale:.98}} onClick={()=>{ setShowWizard(true); addTimeline("🧾 Return Builder started"); toast("🧾 Return Builder started"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Start Return</motion.button>
-            <motion.button whileTap={{scale:.98}} onClick={()=>{ setShowSign(true); addTimeline("✍️ eSign engagement initiated"); toast("✍️ eSign initiated"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50 flex items-center gap-1"><FileSignature className="w-4 h-4"/> eSign Engagement</motion.button>
-            <motion.button whileTap={{scale:.98}} onClick={()=>{ addTimeline("🔗 Secure upload link sent to client"); toast.info("🔗 Secure upload link sent"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Secure Upload Link</motion.button>
-            <motion.button whileTap={{scale:.98}} onClick={()=>{ addTimeline("📚 KY/IRS form set generated (mock)"); toast("📚 Form set generated (mock)"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Generate KY/IRS Form Set (mock)</motion.button>
+            <motion.button whileTap={{scale:.98}} onClick={()=>{ setShowWizard(true); toast("🧾 Return Builder started"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Start Return</motion.button>
+            <motion.button whileTap={{scale:.98}} onClick={()=>{ setShowSign(true); toast("✍️ eSign initiated"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50 flex items-center gap-1"><FileSignature className="w-4 h-4"/> eSign Engagement</motion.button>
+            <motion.button whileTap={{scale:.98}} onClick={()=>{ toast.info("🔗 Secure upload link sent"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Secure Upload Link</motion.button>
+            <motion.button whileTap={{scale:.98}} onClick={()=>{ toast("📚 Form set generated (mock)"); }} className="px-3 py-2 rounded-lg border bg-white hover:bg-slate-50">Generate KY/IRS Form Set (mock)</motion.button>
           </div>
         </div>
 
@@ -578,7 +591,6 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
             <ESignFlow
               onClose={()=>setShowSign(false)}
               client={c}
-              onStep={(label)=> addTimeline(label)}
               onDone={()=> { onStatusChange("Review"); toast.success("✍️ eSign completed"); }}
             />
           </Modal>
@@ -586,9 +598,8 @@ function ClientDetail({ client:c, onRunAgent, busy, log, onStatusChange }){
         {showWizard && (
           <Modal onClose={()=>setShowWizard(false)} title="Return Builder (demo)">
             <ReturnWizard
-              onClose={()=>{ setShowWizard(false); addTimeline("🧾 Return Builder completed"); onStatusChange("Review"); toast.success("🧾 Return complete (demo)"); }}
+              onClose={()=>{ setShowWizard(false); onStatusChange("Review"); toast.success("🧾 Return complete (demo)"); }}
               client={c}
-              onStep={(label)=> addTimeline(label)}
             />
           </Modal>
         )}
@@ -629,14 +640,13 @@ function Modal({ title, onClose, children }){
 }
 
 // eSign flow
-function ESignFlow({ client, onClose, onStep, onDone }){
+function ESignFlow({ client, onClose, onDone }){
   const [step, setStep] = useState(0);
   const steps = ["Draft","Sent","Signed","Archived"];
   function advance(){
     if(step < steps.length-1){
       const next = step+1;
       setStep(next);
-      onStep && onStep(`✍️ eSign status → ${steps[next]}`);
       if(next === steps.length-1){ onDone && onDone(); }
     }
   }
@@ -666,7 +676,7 @@ function ESignFlow({ client, onClose, onStep, onDone }){
 }
 
 // Return Builder wizard
-function ReturnWizard({ client, onClose, onStep }){
+function ReturnWizard({ client, onClose }){
   const [i, setI] = useState(0);
   const [data, setData] = useState({ idVerified:false, docs:{w2:false,_1099:false,k1:false}, dependents: client.dependents, deductions:"standard" });
   const steps = ["Identity","Income","Deductions","Review"];
@@ -676,12 +686,10 @@ function ReturnWizard({ client, onClose, onStep }){
     if(i===1 && !(data.docs.w2 || data.docs._1099 || data.docs.k1)) return alert('Upload at least one income document');
     const ni = Math.min(i+1, steps.length-1);
     setI(ni);
-    onStep && onStep(`🧾 Return Builder → ${steps[ni]}`);
   }
   function prev(){
     const pi = Math.max(i-1, 0);
     setI(pi);
-    onStep && onStep(`🧾 Return Builder → ${steps[pi]}`);
   }
 
   return (
