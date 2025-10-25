@@ -1,255 +1,53 @@
-// src/components/ClientProfile.jsx
-import React, { useState, useMemo } from "react";
+// ─────────────────────────────────────────────────────────────
+// src/components/ClientProfile.jsx — OrcaTax Cloud v2.2
+// Fullscreen profile with AI Advisor, PDF export, and e-File
+// ─────────────────────────────────────────────────────────────
+
+import React, { useMemo, useState } from "react";
 import {
-  ArrowLeft, BarChart3, PieChart as PieIcon, TrendingUp, FileText
+  BarChart3,
+  PieChart,
+  FolderOpenDot,
+  TrendingUp,
+  Cpu,
+  Send,
+  Download,
+  ArrowLeft,
+  Paperclip,
+  CheckCircle2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, PieChart, Pie, Cell
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart as RPieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import { toast } from "react-toastify";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import EFileSubmit from "./EFileSubmit.jsx";
 
-export default function ClientProfile({ client, onClose }) {
-  const [tab, setTab] = useState("overview");
+// Utility colors for charts
+const COLORS = ["#38bdf8", "#0ea5e9", "#0369a1", "#06b6d4", "#22d3ee", "#67e8f9"];
 
-  const taxData = useMemo(() => calculateTaxProfile(client), [client]);
-  const forecastData = useMemo(() => forecastRefunds(client), [client]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-white overflow-y-auto"
-    >
-      <div className="max-w-6xl mx-auto px-6 py-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4 sticky top-0 bg-white/70 backdrop-blur border-b pb-2">
-          <div className="flex items-center gap-3">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={onClose}
-              className="px-3 py-2 rounded-lg border bg-slate-50 hover:bg-slate-100 flex items-center gap-1"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </motion.button>
-            <div>
-              <div className="text-xl font-semibold">
-                {client.name}{" "}
-                <span className="text-xs text-slate-400">({client.id})</span>
-              </div>
-              <div className="text-sm text-slate-500">
-                {client.type} • {client.city}, {client.state}
-              </div>
-            </div>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              toast("📄 Exporting 1040 Preview (mock)");
-              setTimeout(() => toast.success("✅ 1040 Preview Generated"), 800);
-            }}
-            className="px-3 py-2 rounded-lg border bg-black text-white hover:opacity-90 flex items-center gap-2"
-          >
-            <FileText className="w-4 h-4" /> Export 1040
-          </motion.button>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          {["overview", "tax", "deductions", "forecast"].map((t) => (
-            <motion.button
-              key={t}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setTab(t)}
-              className={`px-3 py-2 rounded-lg border ${
-                tab === t ? "bg-sky-600 text-white" : "bg-white hover:bg-slate-50"
-              }`}
-            >
-              {t === "overview" && <BarChart3 className="inline w-4 h-4 mr-1" />}
-              {t === "tax" && <PieIcon className="inline w-4 h-4 mr-1" />}
-              {t === "deductions" && <span className="inline-block w-4 h-4 mr-1">💡</span>}
-              {t === "forecast" && <TrendingUp className="inline w-4 h-4 mr-1" />}
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </motion.button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        <AnimatePresence mode="wait">
-          {tab === "overview" && (
-            <motion.div
-              key="overview"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-            >
-              <div className="rounded-2xl border p-4 bg-white">
-                <div className="font-semibold mb-2">Income vs Expenses</div>
-                <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={buildIncomeExpense(client)}>
-                    <XAxis dataKey="label" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="Income" stroke="#0ea5e9" />
-                    <Line type="monotone" dataKey="Expenses" stroke="#f97316" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="rounded-2xl border p-4 bg-white">
-                <div className="font-semibold mb-2">Profile Summary</div>
-                <ul className="text-sm space-y-1">
-                  <li>Filing Status: {client.filingStatus}</li>
-                  <li>Dependents: {client.dependents}</li>
-                  <li>Risk Score: {client.riskScore}</li>
-                  <li>Last Filed: {client.lastFiledYear}</li>
-                  <li>Current Status: {client.status}</li>
-                </ul>
-              </div>
-            </motion.div>
-          )}
-
-          {tab === "tax" && (
-            <motion.div
-              key="tax"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-            >
-              <div className="rounded-2xl border p-4 bg-white">
-                <div className="font-semibold mb-2">Tax Breakdown (KY + Federal)</div>
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie
-                      dataKey="value"
-                      nameKey="label"
-                      data={taxData.breakdown}
-                      innerRadius={60}
-                      outerRadius={100}
-                      label
-                    >
-                      {taxData.breakdown.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-2 text-sm">
-                  <strong>Total Tax:</strong> ${taxData.total.toLocaleString()}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border p-4 bg-white">
-                <div className="font-semibold mb-2">Regional Adjustments</div>
-                <ul className="text-sm space-y-1">
-                  <li>Federal tax: 22%</li>
-                  <li>Kentucky state tax: 5%</li>
-                  <li>Lexington local tax: 2.25%</li>
-                  <li>Credits per dependent: $2,000</li>
-                </ul>
-                <div className="mt-3 p-3 rounded-xl bg-sky-50 border">
-                  <strong>Refund (est):</strong> ${taxData.refund.toLocaleString()}
-                </div>
-                <div className="mt-3">
-                  <div className="font-semibold mb-1">Tax Efficiency Score</div>
-                  <div className="relative w-full h-4 bg-gray-100 rounded-full">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${taxData.efficiency}%` }}
-                      transition={{ duration: 0.6 }}
-                      className="absolute top-0 left-0 h-4 rounded-full bg-emerald-500"
-                    />
-                  </div>
-                  <div className="mt-2 text-sm text-slate-600">
-                    {taxData.efficiency}% Efficiency — target 90%+
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {tab === "deductions" && (
-            <motion.div
-              key="deductions"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="rounded-2xl border p-4 bg-white"
-            >
-              <div className="font-semibold mb-2">AI-Suggested Deductions</div>
-              <ul className="text-sm list-disc ml-5 space-y-1">
-                <li>Maximize 401(k) and IRA contributions</li>
-                <li>Track business mileage for potential deduction</li>
-                <li>Consider KY education credit for dependent tuition</li>
-                <li>Evaluate home office deduction (if self-employed)</li>
-                <li>Review medical expense threshold for itemization</li>
-              </ul>
-            </motion.div>
-          )}
-
-          {tab === "forecast" && (
-            <motion.div
-              key="forecast"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-            >
-              <div className="rounded-2xl border p-4 bg-white">
-                <div className="font-semibold mb-2">Refund / Balance Forecast</div>
-                <ResponsiveContainer width="100%" height={240}>
-                  <LineChart data={forecastData}>
-                    <XAxis dataKey="year" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="refund"
-                      stroke="#0ea5e9"
-                      strokeWidth={3}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="rounded-2xl border p-4 bg-white">
-                <div className="font-semibold mb-2">Notes</div>
-                <ul className="text-sm list-disc ml-5 space-y-1">
-                  <li>Plan estimated quarterly payments if refund &lt; $500.</li>
-                  <li>Consider S-Corp election if net income &gt; $70k.</li>
-                  <li>Check KY local occupational tax filings deadlines.</li>
-                  <li>Offer mid-year tax planning session.</li>
-                </ul>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  );
-}
-
-const COLORS = ["#0ea5e9", "#38bdf8", "#f59e0b", "#10b981", "#6366f1"];
-
+// Helpers — core calculations
 function calculateTaxProfile(c) {
   const federal = c.income * 0.22;
   const state = c.income * 0.05;
   const city = c.income * 0.0225;
   const total = federal + state + city;
-  const credits = c.dependents * 2000;
+  const credits = (c.dependents || 0) * 2000;
   const refund = Math.max(credits - total * 0.1, 0);
-  const efficiency = Math.min(
-    100,
-    Math.round(((c.income - total) / Math.max(c.income, 1)) * 100)
-  );
+  const efficiency = Math.min(100, Math.round(((c.income - total) / Math.max(c.income, 1)) * 100));
   const breakdown = [
     { label: "Federal Tax", value: Math.round(federal) },
     { label: "KY State Tax", value: Math.round(state) },
-    { label: "Lexington Local Tax", value: Math.round(city) },
+    { label: "Lexington Local", value: Math.round(city) },
     { label: "Credits", value: Math.round(credits) },
   ];
   return { federal, state, city, total, credits, refund, efficiency, breakdown };
@@ -265,9 +63,460 @@ function buildIncomeExpense(c) {
 }
 
 function forecastRefunds(c) {
-  const base = c.refund || 2000;
+  const base = Number.isFinite(c.refund) && c.refund > 0 ? c.refund : 1900 + (c.dependents || 0) * 250;
+  const now = new Date().getFullYear();
   return Array.from({ length: 5 }).map((_, i) => ({
-    year: 2021 + i,
-    refund: Math.round(base * (1 + (i - 2) * 0.08 + Math.random() * 0.05)),
+    year: now - 2 + i,
+    refund: Math.max(0, Math.round(base * (1 + (i - 2) * 0.08 + Math.random() * 0.05))),
   }));
+}
+
+// PDF Export (full report)
+async function makeAdvisorPDF(client, taxData, forecastData) {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595, 842]); // A4-ish
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const draw = (t, x, y, s = 11, color = rgb(0, 0, 0)) =>
+    page.drawText(t, { x, y, size: s, font, color });
+
+  let y = 800;
+  draw("OrcaTax Cloud — Client Advisory Report", 40, y, 14);
+  y -= 25;
+  draw(`Client: ${client.name} (${client.id})`, 40, y);
+  y -= 15;
+  draw(`Type: ${client.type}    Filing: ${client.filingStatus}`, 40, y);
+  y -= 15;
+  draw(`Location: ${client.city}, ${client.state}    Dependents: ${client.dependents}`, 40, y);
+  y -= 25;
+
+  draw("Financial Summary", 40, y, 12);
+  y -= 18;
+  draw(`Income:  $${client.income.toLocaleString()}`, 50, y);
+  y -= 15;
+  draw(`Expenses: $${client.expenses.toLocaleString()}`, 50, y);
+  y -= 15;
+  draw(`Net:     $${(client.income - client.expenses).toLocaleString()}`, 50, y);
+  y -= 25;
+
+  draw("Tax Breakdown", 40, y, 12);
+  y -= 18;
+  draw(`Federal: $${taxData.federal.toLocaleString()}`, 50, y);
+  y -= 15;
+  draw(`State:   $${taxData.state.toLocaleString()} (KY)`, 50, y);
+  y -= 15;
+  draw(`Local:   $${taxData.city.toLocaleString()} (Lexington)`, 50, y);
+  y -= 15;
+  draw(`Credits: $${taxData.credits.toLocaleString()}`, 50, y);
+  y -= 15;
+  draw(`Total Tax: $${taxData.total.toLocaleString()}`, 50, y);
+  y -= 25;
+
+  draw("Refund Forecast (next 5 years)", 40, y, 12);
+  y -= 18;
+  forecastData.forEach((d) => {
+    draw(`${d.year}: $${d.refund.toLocaleString()}`, 50, y);
+    y -= 15;
+  });
+  y -= 10;
+
+  draw("AI Advisor — Top Recommendations", 40, y, 12);
+  y -= 18;
+  [
+    "Increase estimated payments 5% to avoid penalties.",
+    "Consider S-Corp election for KY operations (SE tax optimization).",
+    "Review QBI deduction eligibility and wage/asset tests.",
+    "Leverage bonus depreciation for equipment purchases.",
+    "Optimize child/dependent credits and filing status.",
+  ].forEach((tip) => {
+    draw(`• ${tip}`, 50, y);
+    y -= 13;
+  });
+  y -= 15;
+  draw(`Tax Efficiency: ${taxData.efficiency}% (target 90%+)`, 50, y);
+  y -= 30;
+
+  page.drawLine({ start: { x: 40, y: 60 }, end: { x: 555, y: 60 }, thickness: 1 });
+  draw("Generated by OrcaTax Cloud (Demo)", 40, 45, 10, rgb(0.15, 0.15, 0.15));
+
+  const bytes = await pdfDoc.save();
+  return URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+}
+
+// ─────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────
+export default function ClientProfile({ client, onStatusChange, onClose }) {
+  const [tab, setTab] = useState("overview");
+  const [docs, setDocs] = useState([
+    { name: `W2_${client.name.replace(/\s/g, "")}_2024.pdf`, by: "Client", ts: Date.now() - 86400000 },
+  ]);
+  const [showEFile, setShowEFile] = useState(false);
+
+  const taxData = useMemo(() => calculateTaxProfile(client), [client]);
+  const forecastData = useMemo(() => forecastRefunds(client), [client]);
+
+  const exportPDF = async () => {
+    try {
+      const url = await makeAdvisorPDF(client, taxData, forecastData);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${client.name.replace(/\s/g, "_")}_Advisory.pdf`;
+      a.click();
+      toast.success("📄 Advisory report exported");
+    } catch (e) {
+      console.error(e);
+      toast.error("PDF export failed");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onClose}
+            className="px-3 py-2 rounded-lg border bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Clients
+          </motion.button>
+
+          <div>
+            <div className="text-lg font-semibold">
+              {client.name}{" "}
+              <span className="text-xs text-slate-400">({client.id})</span>
+            </div>
+            <div className="text-xs text-slate-500">
+              {client.city}, {client.state} • {client.type} • {client.filingStatus}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={exportPDF}
+            className="px-3 py-2 rounded-lg border bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" /> Export Advisory Report
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowEFile(true)}
+            className="px-3 py-2 rounded-lg border bg-sky-600 text-white hover:bg-sky-700 flex items-center gap-2"
+          >
+            <Send className="w-4 h-4" /> Submit 1040 (Mock)
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {[
+          ["overview", "Overview", <BarChart3 key="i" className="inline w-4 h-4 mr-1" />],
+          ["tax", "Tax", <PieChart key="t" className="inline w-4 h-4 mr-1" />],
+          ["docs", "Documents", <FolderOpenDot key="d" className="inline w-4 h-4 mr-1" />],
+          ["forecast", "Forecast", <TrendingUp key="f" className="inline w-4 h-4 mr-1" />],
+          ["advisor", "AI Advisor", <Cpu key="a" className="inline w-4 h-4 mr-1" />],
+          ["efile", "e-File", <Send key="e" className="inline w-4 h-4 mr-1" />],
+        ].map(([key, label, icon]) => (
+          <motion.button
+            key={key}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setTab(key)}
+            className={`px-3 py-2 rounded-lg border ${
+              tab === key
+                ? "bg-sky-600 text-white"
+                : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+            }`}
+          >
+            {icon}
+            {label}
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Views */}
+      <AnimatePresence mode="wait">
+        {tab === "overview" && (
+          <motion.div
+            key="overview"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            <div className="rounded-2xl border dark:border-slate-800 p-4 bg-white dark:bg-slate-900">
+              <div className="font-semibold mb-2">Income vs Expenses</div>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={buildIncomeExpense(client)}>
+                  <XAxis dataKey="label" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="Income" stroke="#0ea5e9" />
+                  <Line type="monotone" dataKey="Expenses" stroke="#f43f5e" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="rounded-2xl border dark:border-slate-800 p-4 bg-white dark:bg-slate-900">
+              <div className="font-semibold mb-2">Profile Summary</div>
+              <ul className="text-sm space-y-1">
+                <li>Filing Status: {client.filingStatus}</li>
+                <li>Dependents: {client.dependents}</li>
+                <li>Risk Score: {client.riskScore}</li>
+                <li>Last Filed: {client.lastFiledYear}</li>
+                <li>Status: {client.status}</li>
+              </ul>
+              <div className="mt-3 p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20 border dark:border-slate-800">
+                <div><strong>Refund (est):</strong> ${taxData.refund.toLocaleString()}</div>
+                <div className="text-xs text-slate-500 mt-1">Demo estimates only.</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {tab === "tax" && (
+          <motion.div
+            key="tax"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            <div className="rounded-2xl border dark:border-slate-800 p-4 bg-white dark:bg-slate-900">
+              <div className="font-semibold mb-2">Tax Breakdown (KY + Federal)</div>
+              <ResponsiveContainer width="100%" height={260}>
+                <RPieChart>
+                  {taxData && Array.isArray(taxData.breakdown) && taxData.breakdown.length > 0 ? (
+                    <Pie
+                      dataKey="value"
+                      nameKey="label"
+                      data={taxData.breakdown}
+                      innerRadius={60}
+                      outerRadius={100}
+                      label
+                    >
+                      {taxData.breakdown.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                  ) : (
+                    <text x="50%" y="50%" textAnchor="middle" fill="#888">
+                      No data
+                    </text>
+                  )}
+                  <Tooltip />
+                </RPieChart>
+              </ResponsiveContainer>
+              <div className="mt-2 text-sm">
+                <strong>Total Tax:</strong> ${taxData.total.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border dark:border-slate-800 p-4 bg-white dark:bg-slate-900">
+              <div className="font-semibold mb-2">Regional Adjustments</div>
+              <ul className="text-sm space-y-1">
+                <li>Federal: 22%</li>
+                <li>Kentucky: 5%</li>
+                <li>Lexington local: 2.25%</li>
+                <li>Credits per dependent: $2,000</li>
+              </ul>
+              <div className="mt-3 p-3 rounded-xl bg-sky-50 dark:bg-sky-900/20 border dark:border-slate-800">
+                <strong>Refund (est):</strong> ${taxData.refund.toLocaleString()}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {tab === "docs" && (
+          <motion.div
+            key="docs"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="rounded-2xl border dark:border-slate-800 p-4 bg-white dark:bg-slate-900"
+          >
+            <div className="font-semibold mb-3">Documents</div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <label className="px-3 py-2 rounded-lg border bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-2">
+                <Paperclip className="w-4 h-4" /> Upload Document
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setDocs((d) => [...d, { name: f.name, by: "Advisor", ts: Date.now() }]);
+                      toast.info("📎 Uploaded");
+                    }
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setDocs((d) => [
+                    ...d,
+                    { name: `1099_${client.name.replace(/\s/g, "")}_2024.pdf`, by: "Client", ts: Date.now() },
+                  ]);
+                  toast.info("📄 Client uploaded 1099 (sim)");
+                }}
+                className="px-3 py-2 rounded-lg border bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Simulate Client Upload
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  if (!docs.length) return toast("No docs to analyze");
+                  toast("🤖 AI scanning documents…");
+                  setTimeout(() => toast.success("✅ No anomalies detected (demo)"), 800);
+                }}
+                className="px-3 py-2 rounded-lg border bg-black text-white hover:opacity-90"
+              >
+                Run AI Doc Check
+              </motion.button>
+            </div>
+
+            <ul className="text-sm space-y-1">
+              {!docs.length && <li className="text-slate-500">No documents.</li>}
+              {docs.map((d, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span>📄 {d.name}</span>
+                  <span className="text-xs text-slate-400">
+                    — {d.by} — {new Date(d.ts).toLocaleDateString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+        {tab === "forecast" && (
+          <motion.div
+            key="forecast"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            <div className="rounded-2xl border dark:border-slate-800 p-4 bg-white dark:bg-slate-900">
+              <div className="font-semibold mb-2">Refund / Balance Forecast</div>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={forecastData}>
+                  <XAxis dataKey="year" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="refund" stroke="#0ea5e9" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="rounded-2xl border dark:border-slate-800 p-4 bg-white dark:bg-slate-900">
+              <div className="font-semibold mb-2">Tax Efficiency Score</div>
+              <div className="relative w-full h-4 bg-gray-100 dark:bg-slate-800 rounded-full">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${taxData.efficiency}%` }}
+                  transition={{ duration: 0.6 }}
+                  className="absolute top-0 left-0 h-4 rounded-full bg-emerald-500"
+                />
+              </div>
+              <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                {taxData.efficiency}% Efficiency — target 90%+
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {tab === "advisor" && (
+          <motion.div
+            key="advisor"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="rounded-2xl border dark:border-slate-800 p-4 bg-white dark:bg-slate-900 space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-lg flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-sky-500" /> AI Tax Advisor
+              </div>
+              <button
+                onClick={async () => {
+                  await exportPDF();
+                }}
+                className="px-3 py-2 rounded-lg border bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" /> Export Advisory Report
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="rounded-xl p-3 border dark:border-slate-700 bg-sky-50/50 dark:bg-slate-800/30">
+                <div className="font-medium mb-1">Refund Optimization Index</div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={forecastData}>
+                    <XAxis dataKey="year" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="refund" stroke="#06b6d4" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="rounded-xl p-3 border dark:border-slate-700 bg-rose-50/40 dark:bg-slate-800/30">
+                <div className="font-medium mb-1">Audit Risk Trend (mock)</div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart
+                    data={forecastData.map((d) => ({
+                      ...d,
+                      risk: Math.max(2, 10 + Math.sin(d.year) * 3),
+                    }))}
+                  >
+                    <XAxis dataKey="year" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="risk" stroke="#f43f5e" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div>
+              <div className="font-semibold mb-1">Top AI Recommendations</div>
+              <ul className="list-disc ml-5 text-sm space-y-1">
+                <li>Increase estimated payments by 5% to avoid underpayment penalties.</li>
+                <li>Consider forming S-Corp for KY operations to reduce self-employment tax.</li>
+                <li>Review Qualified Business Income (QBI) deduction eligibility.</li>
+                <li>Leverage bonus depreciation for equipment purchases.</li>
+                <li>Evaluate child tax credits for maximum refund potential.</li>
+              </ul>
+            </div>
+          </motion.div>
+        )}
+
+        {tab === "efile" && (
+          <motion.div
+            key="efile"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+          >
+            <EFileSubmit
+              client={client}
+              onClose={() => setShowEFile(false)}
+              onComplete={() => {
+                toast.success("✅ IRS accepted (mock)");
+                onStatusChange && onStatusChange("Filed");
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
