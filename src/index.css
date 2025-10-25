@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────
+   ORCATAX CLOUD — Global Retina/HiDPI baseline
+   ───────────────────────────────────────────── */
+
+html {
+  font-size: 18px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+@media only screen and (-webkit-min-device-pixel-ratio: 2),
+       only screen and (min-resolution: 192dpi) {
+  html { font-size: 19px; }
+}
+
+:root {
+  color-scheme: light;
+  --orcatax-bg: #f8fafc;
+  --orcatax-fg: #0f172a;
+  --orcatax-link: #2563eb; /* blue-600 */
+}
+
+.dark {
+  color-scheme: dark;
+  --orcatax-bg: #0b1220;
+  --orcatax-fg: #e5e7eb;
+  --orcatax-link: #818cf8;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--orcatax-bg);
+  color: var(--orcatax-fg);
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+a { color: var(--orcatax-link); text-decoration: none; }
+a:hover { opacity: 0.85; }
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+button:hover { border-color: rgba(37,99,235,0.4); }
+button:focus-visible { box-shadow: 0 0 0 3px rgba(37,99,235,0.35); outline: none; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
+
+.card { @apply rounded-2xl bg-white border border-gray-100 shadow-md p-4; }
+.card:hover { transform: scale(1.02); box-shadow: 0 12px 28px rgba(0,0,0,0.08); }

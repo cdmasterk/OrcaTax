@@ -1,0 +1,14 @@
+# Node / Vite
+node_modules/
+dist/
+.vite/
+coverage/
+.env*
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
+# design/exports
+*.pptx
+*.zip
